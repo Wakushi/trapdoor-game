@@ -2,5 +2,7 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+remappings = ["@openzeppelin=lib/openzeppelin-contracts", "@chainlink/contracts=lib/chainlink/contracts", "@solmate/=lib/solmate/src/"]
+ffi = true
 
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+# See more config options https://github.com/foundry-rs/foundry/tree/master/config
