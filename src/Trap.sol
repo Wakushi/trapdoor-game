@@ -52,7 +52,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
     uint256 private constant MAX_PLAYERS_PER_TRAPDOOR = 100;
     uint256 private constant TICKET_FEE_PERCENTAGE = 3; // 0.3%
     uint256 private constant ENTRY_FEE_IN_USD = 10 * 10 ** 18; // 10 USD
-    uint256 private constant GAME_INTERVAL = 1 days;
+    uint256 private constant GAME_INTERVAL = 1 hours;
     uint256 private s_totalPrizePool;
     uint256 private s_totalFees;
     uint256 private s_lastOpenedAt;
@@ -81,6 +81,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
     error Trapdoor__MaxPlayersReached();
     error Trapdoor__TransferFailed();
     error Trapdoor__NotEnoughTimePassed();
+    error Trapdoor__TrapdoorsAreEmpty();
 
     ///////////////////
     // Functions
@@ -105,9 +106,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
     ////////////////////
 
     function chooseTrapdoor(TrapdoorChoice _choice) external payable {
-        uint256 ticketPriceInEth = getTicketPriceInEth();
-
-        if (msg.value < ticketPriceInEth) {
+        if (getPriceInUsd(msg.value) < ENTRY_FEE_IN_USD) {
             revert Trapdoor__InvalidEntryFee();
         }
         if (s_state != TrapdoorState.Open) {
@@ -118,7 +117,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
         }
 
         _ensureTrapdoorIsNotFull(_choice);
-        _handlePrizeAndFees(ticketPriceInEth);
+        _handlePrizeAndFees(msg.value);
         _registerChoice(msg.sender, _choice);
     }
 
@@ -132,6 +131,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
         if (!_hasEnoughTimePassed()) {
             revert Trapdoor__NotEnoughTimePassed();
         }
+        _ensureTrapdoorIsNotEmpty();
         _setTrapdoorState(TrapdoorState.Closed);
         _requestRandomTrapdoor();
     }
@@ -157,14 +157,14 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
         emit PlayerChose(_player, choice);
     }
 
-    function _handlePrizeAndFees(uint256 _ticketPrice) internal {
-        uint256 fees = _computeFees();
-        s_totalPrizePool += _ticketPrice - fees;
+    function _handlePrizeAndFees(uint256 _paidAmount) internal {
+        uint256 fees = _computeFees(_paidAmount);
+        s_totalPrizePool += _paidAmount - fees;
         s_totalFees += fees;
     }
 
-    function _computeFees() internal view returns (uint256) {
-        return (getTicketPriceInEth() * TICKET_FEE_PERCENTAGE) / 1000;
+    function _computeFees(uint256 _paidAmount) internal pure returns (uint256) {
+        return (_paidAmount * TICKET_FEE_PERCENTAGE) / 1000;
     }
 
     function _ensureTrapdoorIsNotFull(TrapdoorChoice _choice) internal view {
@@ -175,6 +175,12 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
                 s_rightPlayers.length >= MAX_PLAYERS_PER_TRAPDOOR)
         ) {
             revert Trapdoor__MaxPlayersReached();
+        }
+    }
+
+    function _ensureTrapdoorIsNotEmpty() internal view {
+        if (s_leftPlayers.length == 0 && s_rightPlayers.length == 0) {
+            revert Trapdoor__TrapdoorsAreEmpty();
         }
     }
 
@@ -261,8 +267,8 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
         return s_rightPlayers;
     }
 
-    function getTicketPriceInEth() public view returns (uint256) {
-        return ENTRY_FEE_IN_USD.getConversionRate(s_priceFeed);
+    function getPriceInUsd(uint256 _ethAmount) public view returns (uint256) {
+        return _ethAmount.getConversionRate(s_priceFeed);
     }
 
     function getEthPrice() external view returns (uint256) {
