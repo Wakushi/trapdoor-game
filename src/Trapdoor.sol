@@ -50,14 +50,14 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
     AggregatorV3Interface private s_priceFeed;
 
     uint256 private constant MAX_PLAYERS_PER_TRAPDOOR = 100;
-    uint256 private constant TICKET_FEE_PERCENTAGE = 3; // 0.3%
+    uint256 private constant TICKET_FEE_PERCENTAGE = 30; // 3%
     uint256 private constant ENTRY_FEE_IN_USD = 10 * 10 ** 18; // 10 USD
     uint256 private constant GAME_INTERVAL = 1 hours;
     uint256 private s_totalPrizePool;
     uint256 private s_totalFees;
     uint256 private s_lastOpenedAt;
 
-    TrapdoorState private s_state;
+    TrapdoorState private s_GameState;
     address[] private s_leftPlayers;
     address[] private s_rightPlayers;
     address[] private s_lastWinners;
@@ -109,7 +109,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
         if (getPriceInUsd(msg.value) < ENTRY_FEE_IN_USD) {
             revert Trapdoor__InvalidEntryFee();
         }
-        if (s_state != TrapdoorState.Open) {
+        if (s_GameState != TrapdoorState.Open) {
             revert Trapdoor__GameIsClosed();
         }
         if (_choice != TrapdoorChoice.Left && _choice != TrapdoorChoice.Right) {
@@ -125,7 +125,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
      * @notice Called by Chainlink Automation
      */
     function revealTrapdoor() external {
-        if (s_state == TrapdoorState.Closed) {
+        if (s_GameState == TrapdoorState.Closed) {
             revert Trapdoor__GameIsClosed();
         }
         if (!_hasEnoughTimePassed()) {
@@ -189,7 +189,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
     }
 
     function _setTrapdoorState(TrapdoorState _newTrapdoorState) internal {
-        s_state = _newTrapdoorState;
+        s_GameState = _newTrapdoorState;
         emit TrapdoorStateChanged(_newTrapdoorState);
     }
 
@@ -252,7 +252,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
     }
 
     function getTrapdoorState() external view returns (TrapdoorState) {
-        return s_state;
+        return s_GameState;
     }
 
     function getPlayersCount() external view returns (uint256, uint256) {
