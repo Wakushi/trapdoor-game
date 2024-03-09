@@ -56,6 +56,8 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
     uint256 private s_totalPrizePool;
     uint256 private s_totalFees;
     uint256 private s_lastOpenedAt;
+    uint256 private s_lastPrizeValue;
+    TrapdoorChoice private s_lastTrapdoorSide;
 
     TrapdoorState private s_GameState;
     address[] private s_leftPlayers;
@@ -212,9 +214,11 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
         uint256 trapdoorChoice = randomValue % 2;
         if (trapdoorChoice == 0) {
             s_lastWinners = s_leftPlayers;
+            s_lastTrapdoorSide = TrapdoorChoice.Left;
             _distributePrizes(s_leftPlayers);
         } else {
             _distributePrizes(s_rightPlayers);
+            s_lastTrapdoorSide = TrapdoorChoice.Right;
             s_lastWinners = s_rightPlayers;
         }
         _setTrapdoorState(TrapdoorState.Open);
@@ -226,6 +230,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
 
     function _distributePrizes(address[] memory winners) internal {
         uint256 prize = s_totalPrizePool / winners.length;
+        s_lastPrizeValue = prize;
         for (uint256 i = 0; i < winners.length; i++) {
             (bool success, ) = winners[i].call{value: prize}("");
             if (!success) {
@@ -282,5 +287,13 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
 
     function getFeesAmount() external view returns (uint256) {
         return s_totalFees;
+    }
+
+    function getLastPrizeValue() external view returns (uint256) {
+        return s_lastPrizeValue;
+    }
+
+    function getLastTrapdoorSide() external view returns (TrapdoorChoice) {
+        return s_lastTrapdoorSide;
     }
 }
