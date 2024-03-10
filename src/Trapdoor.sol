@@ -72,6 +72,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
     event PlayerChose(address indexed player, TrapdoorChoice indexed choice);
     event RandomTrapdoorRequested(uint256 indexed requestId);
     event WinnerChosen(address[] indexed winners);
+    event TrapdoorOpened(uint256 indexed trapdoorChoice);
 
     ///////////////////
     // Errors
@@ -212,6 +213,9 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
     ) internal override {
         uint256 randomValue = randomWords[0];
         uint256 trapdoorChoice = randomValue % 2;
+
+        emit TrapdoorOpened(trapdoorChoice);
+
         if (trapdoorChoice == 0) {
             s_lastWinners = s_leftPlayers;
             s_lastTrapdoorSide = TrapdoorChoice.Left;
@@ -295,5 +299,9 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
 
     function getLastTrapdoorSide() external view returns (TrapdoorChoice) {
         return s_lastTrapdoorSide;
+    }
+
+    function getLastOpenedAt() external view returns (uint256) {
+        return s_lastOpenedAt;
     }
 }
