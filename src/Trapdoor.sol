@@ -52,7 +52,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
     uint256 private constant MAX_PLAYERS_PER_TRAPDOOR = 100;
     uint256 private constant TICKET_FEE_PERCENTAGE = 30; // 3%
     uint256 private constant ENTRY_FEE_IN_USD = 10 * 10 ** 18; // 10 USD
-    uint256 private constant GAME_INTERVAL = 1 hours;
+    uint256 private s_gameInterval = 1 hours;
     uint256 private s_totalPrizePool;
     uint256 private s_totalFees;
     uint256 private s_lastOpenedAt;
@@ -188,7 +188,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
     }
 
     function _hasEnoughTimePassed() internal view returns (bool) {
-        return s_lastOpenedAt + GAME_INTERVAL < block.timestamp;
+        return s_lastOpenedAt + s_gameInterval < block.timestamp;
     }
 
     function _setTrapdoorState(TrapdoorState _newTrapdoorState) internal {
@@ -280,7 +280,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
         return _ethAmount.getConversionRate(s_priceFeed);
     }
 
-    function getEthPrice() external view returns (uint256) {
+    function getEthPrice() public view returns (uint256) {
         (, int256 price, , , ) = s_priceFeed.latestRoundData();
         return uint256(price);
     }
@@ -303,5 +303,15 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
 
     function getLastOpenedAt() external view returns (uint256) {
         return s_lastOpenedAt;
+    }
+
+    function getTicketPriceInEth() external view returns (uint256) {
+        uint256 ethPriceInUsd = getEthPrice();
+        return ENTRY_FEE_IN_USD / ethPriceInUsd;
+    }
+
+    // @audit Should be onlyOwner prior to prod deployment
+    function updateInterval(uint256 _newInterval) external {
+        s_gameInterval = _newInterval;
     }
 }
