@@ -282,7 +282,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
 
     function getEthPrice() public view returns (uint256) {
         (, int256 price, , , ) = s_priceFeed.latestRoundData();
-        return uint256(price);
+        return uint256(price) * 10 ** 10;
     }
 
     function getLastWinners() external view returns (address[] memory) {
@@ -307,7 +307,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
 
     function getTicketPriceInEth() external view returns (uint256) {
         uint256 ethPriceInUsd = getEthPrice();
-        return ENTRY_FEE_IN_USD / ethPriceInUsd;
+        return (ENTRY_FEE_IN_USD * 10 ** 18) / ethPriceInUsd;
     }
 
     // @audit Should be onlyOwner prior to prod deployment
