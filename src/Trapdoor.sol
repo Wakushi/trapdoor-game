@@ -109,7 +109,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
     ////////////////////
 
     function chooseTrapdoor(TrapdoorChoice _choice) external payable {
-        if (getPriceInUsd(msg.value) < ENTRY_FEE_IN_USD) {
+        if (msg.value < getTicketPriceInEth()) {
             revert Trapdoor__InvalidEntryFee();
         }
         if (s_GameState != TrapdoorState.Open) {
@@ -276,10 +276,6 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
         return s_rightPlayers;
     }
 
-    function getPriceInUsd(uint256 _ethAmount) public view returns (uint256) {
-        return _ethAmount.getConversionRate(s_priceFeed);
-    }
-
     function getEthPrice() public view returns (uint256) {
         (, int256 price, , , ) = s_priceFeed.latestRoundData();
         return uint256(price) * 10 ** 10;
@@ -305,7 +301,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
         return s_lastOpenedAt;
     }
 
-    function getTicketPriceInEth() external view returns (uint256) {
+    function getTicketPriceInEth() public view returns (uint256) {
         uint256 ethPriceInUsd = getEthPrice();
         return (ENTRY_FEE_IN_USD * 10 ** 18) / ethPriceInUsd;
     }
