@@ -59,7 +59,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
     uint256 private s_lastPrizeValue;
     TrapdoorChoice private s_lastTrapdoorSide;
 
-    TrapdoorState private s_GameState;
+    TrapdoorState private s_gameState;
     address[] private s_leftPlayers;
     address[] private s_rightPlayers;
     address[] private s_lastWinners;
@@ -112,7 +112,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
         if (msg.value < getTicketPriceInEth()) {
             revert Trapdoor__InvalidEntryFee();
         }
-        if (s_GameState != TrapdoorState.Open) {
+        if (s_gameState != TrapdoorState.Open) {
             revert Trapdoor__GameIsClosed();
         }
         if (_choice != TrapdoorChoice.Left && _choice != TrapdoorChoice.Right) {
@@ -128,7 +128,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
      * @notice Called by Chainlink Automation
      */
     function revealTrapdoor() external {
-        if (s_GameState == TrapdoorState.Closed) {
+        if (s_gameState == TrapdoorState.Closed) {
             revert Trapdoor__GameIsClosed();
         }
         if (!_hasEnoughTimePassed()) {
@@ -192,7 +192,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
     }
 
     function _setTrapdoorState(TrapdoorState _newTrapdoorState) internal {
-        s_GameState = _newTrapdoorState;
+        s_gameState = _newTrapdoorState;
         emit TrapdoorStateChanged(_newTrapdoorState);
     }
 
@@ -221,13 +221,14 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
             s_lastTrapdoorSide = TrapdoorChoice.Left;
             _distributePrizes(s_leftPlayers);
         } else {
-            _distributePrizes(s_rightPlayers);
-            s_lastTrapdoorSide = TrapdoorChoice.Right;
             s_lastWinners = s_rightPlayers;
+            s_lastTrapdoorSide = TrapdoorChoice.Right;
+            _distributePrizes(s_rightPlayers);
         }
         _setTrapdoorState(TrapdoorState.Open);
         _updateLastOpenedAt();
         _resetTrapdoorPlayers();
+        _resetPrizePool();
 
         emit WinnerChosen(s_lastWinners);
     }
@@ -252,6 +253,10 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
         delete s_rightPlayers;
     }
 
+    function _resetPrizePool() internal {
+        s_totalPrizePool = 0;
+    }
+
     ////////////////////
     // External / View
     ////////////////////
@@ -261,7 +266,7 @@ contract Trapdoor is VRFConsumerBaseV2, Ownable {
     }
 
     function getTrapdoorState() external view returns (TrapdoorState) {
-        return s_GameState;
+        return s_gameState;
     }
 
     function getPlayersCount() external view returns (uint256, uint256) {
